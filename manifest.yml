@@ -1,0 +1,6 @@
+---
+name: wallet-api
+services:
+  - capi-facade
+  - session-api
+buildpack: java_buildpack

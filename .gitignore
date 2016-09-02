@@ -1,0 +1,23 @@
+.idea/
+build/
+.shelf
+*.iml
+*.ipr
+*.iws
+out/
+.gradle/
+target/
+classes/
+
+# eclipse
+.classpath
+.project
+.settings/
+/bin/
+.metadata/
+Servers
+
+.DS_Store
+
+# for local debugging
+.config/wallet-api/spring-cloud.properties

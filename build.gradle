@@ -1,0 +1,104 @@
+buildscript {
+    ext {
+        springBootVersion = "1.3.5.RELEASE"
+    }
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
+    }
+}
+
+apply plugin: "java"
+apply plugin: "idea"
+apply plugin: "eclipse"
+apply plugin: "spring-boot"
+apply plugin: "application"
+apply plugin: "jacoco" // test coverage
+apply plugin: "findbugs"
+apply plugin: "checkstyle"
+apply plugin: "io.spring.dependency-management"
+
+defaultTasks 'clean', 'test', 'build'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+mainClassName = 'com.cmpwrn.api.fuzz.DemoApi'
+repositories {
+    jcenter()
+}
+
+sourceSets.create("postDeployTests")
+
+configurations {
+    postDeployTestsCompile.extendsFrom testCompile
+    postDeployTestsRuntime.extendsFrom testRuntime
+}
+
+description = "fuzz demo"
+
+processResources {
+    filesNotMatching('swagger.json') {
+        expand(project.properties)
+    }
+}
+
+dependencies {
+    compile "org.springframework.boot:spring-boot"
+    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.boot:spring-boot-devtools"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.boot:spring-boot-starter-hateoas"
+    compile "org.springframework.boot:spring-boot-starter-data-jpa"
+
+    compile "io.swagger:swagger-parser:1.0.19"
+    compile "commons-validator:commons-validator:1.5.1"
+    compile "io.springfox:springfox-swagger2:2.4.0"
+    compile "io.springfox:springfox-swagger-ui:2.4.0"
+    compile "org.projectlombok:lombok:1.16.8"
+
+    compile 'com.fasterxml:jackson-xml-databind:0.6.2' // Allows returning JSONObject in ResponseEntity
+
+    compile 'org.apache.httpcomponents:httpclient:4.5.2'
+    compile 'org.json:json:20160212'
+
+    compile 'org.springframework.cloud:spring-cloud-spring-service-connector:1.2.2.RELEASE'
+    compile 'org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.2.2.RELEASE'
+    compile 'org.springframework.cloud:spring-cloud-localconfig-connector:1.2.2.RELEASE'
+
+    compile "org.springframework.cloud:spring-cloud-spring-service-connector"
+    compile "org.springframework.cloud:spring-cloud-cloudfoundry-connector"
+    compile "org.springframework.cloud:spring-cloud-starter-config"
+
+    runtime "com.h2database:h2:1.4.192"
+
+    testCompile "org.springframework:spring-test"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+    testCompile "com.github.tomakehurst:wiremock:1.58"
+    testCompile "io.github.robwin:assertj-swagger:0.4.0"
+
+    postDeployTestsCompile sourceSets.main.output
+}
+
+project.task('testJar', type: Jar, dependsOn: [':compileTestJava', ':compilePostDeployTestsJava'], {
+    classifier = "test"
+
+    from project.files(sourceSets.main.output.classesDir)
+    from project.files(sourceSets.main.output.resourcesDir)
+    from project.files(sourceSets.postDeployTests.output.classesDir)
+    from project.files(sourceSets.postDeployTests.output.resourcesDir)
+    from project.configurations.testRuntime.asFileTree.files.collect { project.zipTree(it) }
+
+//  Avoid JNI error in fat jar
+    exclude "META-INF/*.SF"
+    exclude "META-INF/*.DSA"
+    exclude "META-INF/*.RSA"
+
+    manifest {
+        attributes 'Main-Class': 'com.sonicdrivein.postdeploytests.TestRunner'
+    }
+})
+
